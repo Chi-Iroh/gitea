@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -223,7 +224,9 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		gitCmd := NewCommand(repo.Ctx, "rev-list").
+		gitCmd := NewCommand(repo.Ctx, "--no-pager", "log").
+			AddOptionFormat("--follow").
+			AddOptionFormat("--pretty=format:%%H").
 			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
 			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
 		gitCmd.AddDynamicArguments(opts.Revision)
@@ -233,12 +236,15 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		}
 
 		gitCmd.AddDashesAndList(opts.File)
+		fmt.Print(gitCmd)
+		fmt.Fprint(os.Stdout, "")
 		err := gitCmd.Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: stdoutWriter,
 			Stderr: &stderr,
 		})
-		if err != nil {
+		fmt.Print("1 ", err)
+		if err != nil && err != io.ErrUnexpectedEOF {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = stdoutWriter.Close()
@@ -246,6 +252,7 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 
 	objectFormat, err := repo.GetObjectFormat()
+	fmt.Print("object", err)
 	if err != nil {
 		return nil, err
 	}
@@ -255,8 +262,9 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	shaline := make([]byte, length+1)
 	for {
 		n, err := io.ReadFull(stdoutReader, shaline)
+		fmt.Print("io", err)
 		if err != nil || n < length {
-			if err == io.EOF {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				err = nil
 			}
 			return commits, err
