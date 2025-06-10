@@ -170,7 +170,7 @@ type CommitsCountOptions struct {
 
 // CommitsCount returns number of total commits of until given revision.
 func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) {
-	cmd := NewCommand(ctx, "rev-list", "--count")
+	cmd := NewCommand(ctx, "--no-pager", "log", "--pretty=format:%H")
 
 	cmd.AddDynamicArguments(opts.Revision...)
 
@@ -179,6 +179,7 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 	}
 
 	if len(opts.RelPath) > 0 {
+		cmd.AddOptionValues("--follow")
 		cmd.AddDashesAndList(opts.RelPath...)
 	}
 
@@ -186,8 +187,7 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 	if err != nil {
 		return 0, err
 	}
-
-	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+	return int64(len(strings.Split(stdout, "\n"))), nil
 }
 
 // CommitsCount returns number of total commits of until current revision.
