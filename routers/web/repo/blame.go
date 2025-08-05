@@ -286,7 +286,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 			if i != len(lines)-1 {
 				line += "\n"
 			}
-			line, lexerNameForLine := highlight.Code(path.Base(ctx.Repo.TreePath), language, line)
+			line, _, lexerNameForLine := highlight.Code(path.Base(ctx.Repo.TreePath), language, line)
 
 			// set lexer name to the first detected lexer. this is certainly suboptimal and
 			// we should instead highlight the whole file at once

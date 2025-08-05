@@ -126,7 +126,7 @@ func handleFileViewRenderSource(ctx *context.Context, filename string, attrs *at
 	}
 
 	language := attrs.GetLanguage().Value()
-	fileContent, lexerName, err := highlight.File(filename, language, buf)
+	fileContent, styleCSS, lexerName, err := highlight.File(filename, language, buf)
 	ctx.Data["LexerName"] = lexerName
 	if err != nil {
 		log.Error("highlight.File failed, fallback to plain text: %v", err)
@@ -140,6 +140,7 @@ func handleFileViewRenderSource(ctx *context.Context, filename string, attrs *at
 	}
 	ctx.Data["EscapeStatus"] = status
 	ctx.Data["FileContent"] = fileContent
+	ctx.Data["FileStyle"] = styleCSS
 	ctx.Data["LineEscapeStatus"] = statuses
 	return true
 }

@@ -103,6 +103,7 @@
 			{{else if .IsPlainText}}
 				<pre>{{if .FileContent}}{{.FileContent}}{{end}}</pre>
 			{{else if .FileContent}}
+				{{.FileStyle}}
 				<table>
 					<tbody>
 					{{range $idx, $code := .FileContent}}

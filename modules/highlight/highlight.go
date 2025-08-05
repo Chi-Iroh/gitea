@@ -56,18 +56,27 @@ func NewContext() {
 	})
 }
 
+func FindLanguageStyle(language string) *chroma.Style {
+	for _, styleName := range styles.Names() {
+		if strings.EqualFold(styleName, language) {
+			return styles.Get(styleName)
+		}
+	}
+	return styles.Get("github")
+}
+
 // Code returns a HTML version of code string with chroma syntax highlighting classes and the matched lexer name
-func Code(fileName, language, code string) (output template.HTML, lexerName string) {
+func Code(fileName, language, code string) (output template.HTML, styleCSS template.HTML, lexerName string) {
 	NewContext()
 
 	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
 	// preserve literal newline in blame view
 	if code == "" || code == "\n" {
-		return "\n", ""
+		return "\n", "", ""
 	}
 
 	if len(code) > sizeLimit {
-		return template.HTML(template.HTMLEscapeString(code)), ""
+		return template.HTML(template.HTMLEscapeString(code)), "", ""
 	}
 
 	var lexer chroma.Lexer
@@ -104,11 +113,12 @@ func Code(fileName, language, code string) (output template.HTML, lexerName stri
 		cache.Add(fileName, lexer)
 	}
 
-	return CodeFromLexer(lexer, code), formatLexerName(lexer.Config().Name)
+	fileContent, styleCSS := CodeFromLexer(lexer, code, language)
+	return fileContent, styleCSS, formatLexerName(lexer.Config().Name)
 }
 
 // CodeFromLexer returns a HTML version of code string with chroma syntax highlighting classes
-func CodeFromLexer(lexer chroma.Lexer, code string) template.HTML {
+func CodeFromLexer(lexer chroma.Lexer, code string, language string) (template.HTML, template.HTML) {
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
@@ -120,27 +130,34 @@ func CodeFromLexer(lexer chroma.Lexer, code string) template.HTML {
 	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
-		return template.HTML(template.HTMLEscapeString(code))
+		return template.HTML(template.HTMLEscapeString(code)), ""
 	}
+	style := FindLanguageStyle(language)
 	// style not used for live site but need to pass something
-	err = formatter.Format(htmlw, githubStyles, iterator)
+	err = formatter.Format(htmlw, style, iterator)
 	if err != nil {
 		log.Error("Can't format code: %v", err)
-		return template.HTML(template.HTMLEscapeString(code))
+		return template.HTML(template.HTMLEscapeString(code)), ""
 	}
 
 	_ = htmlw.Flush()
 	// Chroma will add newlines for certain lexers in order to highlight them properly
 	// Once highlighted, strip them here, so they don't cause copy/paste trouble in HTML output
-	return template.HTML(strings.TrimSuffix(htmlbuf.String(), "\n"))
+	return template.HTML(strings.TrimSuffix(htmlbuf.String(), "\n")), template.HTML(formatterCSS(style, formatter))
+}
+
+func formatterCSS(style *chroma.Style, formatter *html.Formatter) template.HTML {
+	htmlBuf := &bytes.Buffer{}
+	formatter.WriteCSS(htmlBuf, style)
+	return template.HTML("<style>\n" + htmlBuf.String() + "\n</style>")
 }
 
 // File returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
-func File(fileName, language string, code []byte) ([]template.HTML, string, error) {
+func File(fileName, language string, code []byte) ([]template.HTML, template.HTML, string, error) {
 	NewContext()
 
 	if len(code) > sizeLimit {
-		return PlainText(code), "", nil
+		return PlainText(code), "", "", nil
 	}
 
 	formatter := html.New(html.WithClasses(true),
@@ -158,43 +175,58 @@ func File(fileName, language string, code []byte) ([]template.HTML, string, erro
 	if lexer == nil {
 		if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
 			lexer = lexers.Get(val)
+			language = val
 		}
 	}
 
 	if lexer == nil {
 		guessLanguage := analyze.GetCodeLanguage(fileName, code)
+		println("Guessed language is", guessLanguage)
 
 		lexer = lexers.Get(guessLanguage)
 		if lexer == nil {
 			lexer = lexers.Match(fileName)
 			if lexer == nil {
-				lexer = lexers.Fallback
+				// println(lexers.Analyse("**Free").Config().Name)
+				lexer = lexers.Analyse(string(code))
+				if lexer == nil {
+					lexer = lexers.Fallback
+				} else {
+					language = lexer.Config().Name
+				}
+			} else {
+				language = lexer.Config().Name
 			}
+		} else {
+			language = guessLanguage
 		}
 	}
 
+	FindLanguageStyle(language)
 	lexerName := formatLexerName(lexer.Config().Name)
 
 	iterator, err := lexer.Tokenise(nil, string(code))
 	if err != nil {
-		return nil, "", fmt.Errorf("can't tokenize code: %w", err)
+		return nil, "", "", fmt.Errorf("can't tokenize code: %w", err)
 	}
 
 	tokensLines := chroma.SplitTokensIntoLines(iterator.Tokens())
 	htmlBuf := &bytes.Buffer{}
 
 	lines := make([]template.HTML, 0, len(tokensLines))
+	style := FindLanguageStyle(language)
+	styleCSS := formatterCSS(style, formatter)
 	for _, tokens := range tokensLines {
 		iterator = chroma.Literator(tokens...)
-		err = formatter.Format(htmlBuf, githubStyles, iterator)
+		err = formatter.Format(htmlBuf, style, iterator)
 		if err != nil {
-			return nil, "", fmt.Errorf("can't format code: %w", err)
+			return nil, "", "", fmt.Errorf("can't format code: %w", err)
 		}
 		lines = append(lines, template.HTML(htmlBuf.String()))
 		htmlBuf.Reset()
 	}
 
-	return lines, lexerName, nil
+	return lines, styleCSS, lexerName, nil
 }
 
 // PlainText returns non-highlighted HTML for code
