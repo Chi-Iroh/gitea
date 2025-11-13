@@ -1,9 +1,9 @@
-import {minimatch} from 'minimatch';
 import {createMonaco} from './codeeditor.ts';
 import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {globMatch} from '../utils/glob.ts';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -101,14 +101,14 @@ function initRepoSettingsBranches() {
   // show the `Matched` mark for the status checks that match the pattern
   const markMatchedStatusChecks = () => {
     const patterns = (document.querySelector<HTMLTextAreaElement>('#status_check_contexts').value || '').split(/[\r\n]+/);
-    const validPatterns = patterns.map((item) => item.trim()).filter(Boolean);
+    const validPatterns = patterns.map((item) => item.trim()).filter(Boolean as unknown as <T>(x: T | boolean) => x is T);
     const marks = document.querySelectorAll('.status-check-matched-mark');
 
     for (const el of marks) {
       let matched = false;
       const statusCheck = el.getAttribute('data-status-check');
       for (const pattern of validPatterns) {
-        if (minimatch(statusCheck, pattern, {noext: true})) { // https://github.com/go-gitea/gitea/issues/33121 disable extended glob syntax
+        if (globMatch(statusCheck, pattern, '/')) {
           matched = true;
           break;
         }

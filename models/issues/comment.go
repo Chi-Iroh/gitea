@@ -279,8 +279,8 @@ type Comment struct {
 	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
-	Line            int64 // - previous line / + proposed line
-	TreePath        string
+	Line            int64         // - previous line / + proposed line
+	TreePath        string        `xorm:"VARCHAR(4000)"` // SQLServer only supports up to 4000
 	Content         string        `xorm:"LONGTEXT"`
 	ContentVersion  int           `xorm:"NOT NULL DEFAULT 0"`
 	RenderedContent template.HTML `xorm:"-"`
@@ -414,7 +414,7 @@ func (c *Comment) HTMLURL(ctx context.Context) string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return c.Issue.HTMLURL() + c.hashLink(ctx)
+	return c.Issue.HTMLURL(ctx) + c.hashLink(ctx)
 }
 
 // Link formats a relative URL-string to the issue-comment
@@ -483,7 +483,7 @@ func (c *Comment) IssueURL(ctx context.Context) string {
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
-	return c.Issue.HTMLURL()
+	return c.Issue.HTMLURL(ctx)
 }
 
 // PRURL formats a URL-string to the pull-request
@@ -503,7 +503,7 @@ func (c *Comment) PRURL(ctx context.Context) string {
 	if !c.Issue.IsPull {
 		return ""
 	}
-	return c.Issue.HTMLURL()
+	return c.Issue.HTMLURL(ctx)
 }
 
 // CommentHashTag returns unique hash tag for comment id.
@@ -862,10 +862,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
-	case CommentTypeReopen, CommentTypeClose:
-		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
-			return err
-		}
+		// comment type reopen and close event have their own logic to update numbers but not here
 	}
 	// update the issue's updated_unix column
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")

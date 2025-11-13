@@ -28,6 +28,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -270,6 +271,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 			db.IsErrNamePatternNotAllowed(err) ||
 			label.IsErrTemplateLoad(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.APIError(http.StatusForbidden, err)
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -736,14 +739,14 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	// Default branch only updated if changed and exist or the repository is empty
 	updateRepoLicense := false
 	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, *opts.DefaultBranch)) {
+		repo.DefaultBranch = *opts.DefaultBranch
 		if !repo.IsEmpty {
-			if err := gitrepo.SetDefaultBranch(ctx, ctx.Repo.Repository, *opts.DefaultBranch); err != nil {
+			if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				ctx.APIErrorInternal(err)
 				return err
 			}
 			updateRepoLicense = true
 		}
-		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
 	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
@@ -866,6 +869,18 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if !unit_model.TypeWiki.UnitGlobalDisabled() {
 				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
 			}
+		}
+	}
+
+	if opts.HasCode != nil && !unit_model.TypeCode.UnitGlobalDisabled() {
+		if *opts.HasCode {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeCode,
+				Config: &repo_model.UnitConfig{},
+			})
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
 		}
 	}
 
