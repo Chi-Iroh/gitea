@@ -34,6 +34,11 @@
 				{{template "repo/file_info" .}}
 			{{end}}
 		</div>
+		{{template "repo/style_dropdown" dict
+			"RepositoryLink" .Repository.Link
+			"LatestCommit" .LatestCommit
+			"FileTreePath" .FileTreePath
+		}}
 		<div class="file-header-right file-actions flex-text-block tw-flex-wrap">
 			{{/* this componment is also controlled by frontend plugin renders */}}
 			<div class="ui compact icon buttons file-view-toggle-buttons {{Iif .HasSourceRenderedToggle "" "tw-hidden"}}">

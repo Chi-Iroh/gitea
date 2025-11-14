@@ -1,0 +1,21 @@
+{{/* Template attributes:
+* RepositoryLink
+* LatestCommit
+* FileTreePath
+*/}}
+
+<div class="ui dropdown compact custom"
+	id="code-highlight-styles"
+	data-tooltip-content="{{ctx.Locale.Tr "repo.code_highlight_styles"}}"
+	data-current-repo-link="{{.RepositoryLink}}"
+	data-current-commit="{{.LatestCommit}}"
+	data-current-filepath="{{.FileTreePath}}"
+	data-global-init="initCodeStyleSelector"
+>
+	<div class="ui compact button">
+		<span class="flex-text-block">
+			<p><strong class="tw-inline-block">Style&nbsp;:&nbsp;</strong>GitHub</p>
+		</span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	</div>
+</div>

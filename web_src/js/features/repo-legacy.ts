@@ -16,12 +16,20 @@ import {initRepoIssueCommentEdit} from './repo-issue-edit.ts';
 import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
+import CodeStyleSelector from '../components/CodeStyleSelector.vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initRepoPullMergeBox} from './repo-issue-pull.ts';
 
 function initRepoBranchTagSelector() {
   registerGlobalInitFunc('initRepoBranchTagSelector', async (elRoot: HTMLInputElement) => {
     createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
+  });
+}
+
+function initCodeStyleSelector() {
+  registerGlobalInitFunc('initCodeStyleSelector', async (elRoot: HTMLInputElement) => {
+    console.log(552);
+    createApp(CodeStyleSelector, {elRoot}).mount(elRoot);
   });
 }
 
@@ -42,6 +50,7 @@ export function initRepository() {
   if (!pageContent) return;
 
   initRepoBranchTagSelector();
+  initCodeStyleSelector();
   initRepoCommentFormAndSidebar();
 
   // Labels
