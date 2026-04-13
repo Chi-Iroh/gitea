@@ -32,12 +32,12 @@ export function initCommitFileHistoryFollowRename() {
     return;
   }
   const url = new URL(window.location.toString());
-  checkbox.checked = url.searchParams.get('history_follow_rename') === 'true';
+  checkbox.checked = url.searchParams.get('history-enable-follow-renames') === 'true';
 
   checkbox.addEventListener('change', () => {
     const url = new URL(window.location.toString());
 
-    url.searchParams.set('history_follow_rename', `${checkbox.checked}`);
+    url.searchParams.set('history-enable-follow-renames', `${checkbox.checked}`);
     window.location.replace(url);
   });
 }

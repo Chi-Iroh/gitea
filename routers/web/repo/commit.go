@@ -217,7 +217,7 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	followRename := ctx.FormBool("history_follow_rename")
+	followRename := ctx.FormBool("history-enable-follow-renames")
 
 	if ctx.Repo.TreePath == "" {
 		Commits(ctx)
