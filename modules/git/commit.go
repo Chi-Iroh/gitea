@@ -176,8 +176,14 @@ func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) 
 	if opts.Not != "" {
 		cmd.AddOptionValues("--not", opts.Not)
 	}
+	if opts.Since != "" {
+		cmd.AddOptionFormat("--since=%s", opts.Since)
+	}
+	if opts.Until != "" {
+		cmd.AddOptionFormat("--until=%s", opts.Until)
+	}
 
-	if len(opts.RelPath) > 0 {
+	if len(opts.RelPath) == 1 {
 		if opts.FollowRename {
 			cmd.AddOptionValues("--follow")
 		}

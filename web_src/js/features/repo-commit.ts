@@ -32,7 +32,7 @@ export function initCommitFileHistoryFollowRename() {
     return;
   }
   const url = new URL(window.location.toString());
-  checkbox.checked = url.searchParams.has('history_follow_rename', 'true');
+  checkbox.checked = url.searchParams.get('history_follow_rename') === 'true';
 
   checkbox.addEventListener('change', () => {
     const url = new URL(window.location.toString());

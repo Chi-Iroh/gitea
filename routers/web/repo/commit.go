@@ -217,14 +217,14 @@ func SearchCommits(ctx *context.Context) {
 
 // FileHistory show a file's reversions
 func FileHistory(ctx *context.Context) {
-	followRename := strings.Contains(ctx.Req.RequestURI, "history_follow_rename=true")
+	followRename := ctx.FormBool("history_follow_rename")
 
 	if ctx.Repo.TreePath == "" {
 		Commits(ctx)
 		return
 	}
 
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath, followRename)
+	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath, git.FollowRename(followRename))
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return

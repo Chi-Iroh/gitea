@@ -16,6 +16,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+type FollowRename bool
+
+const (
+	FollowRenameYes = true
+	FollowRenameNo  = false
+)
+
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 	return repo.GetRefCommitID(BranchPrefix + name)
@@ -217,18 +224,13 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 }
 
 // FileCommitsCount return the number of files at a revision
-func (repo *Repository) FileCommitsCount(revision, file string, followRenameOptional ...bool) (int64, error) {
-	followRename := false
-	if len(followRenameOptional) > 0 {
-		followRename = followRenameOptional[0]
-	}
-
+func (repo *Repository) FileCommitsCount(revision, file string, followRename FollowRename) (int64, error) {
 	return CommitsCount(repo.Ctx,
 		CommitsCountOptions{
 			RepoPath:     repo.Path,
 			Revision:     []string{revision},
 			RelPath:      []string{file},
-			FollowRename: followRename,
+			FollowRename: bool(followRename),
 		})
 }
 
