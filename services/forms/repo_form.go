@@ -27,9 +27,9 @@ type CreateRepoForm struct {
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
 	Gitignores    string
-	IssueLabels   string
-	License       string
-	Readme        string
+	IssueLabels   string `binding:"MaxSize(255)"`
+	License       string `binding:"MaxSize(100)"`
+	Readme        string `binding:"MaxSize(255)"`
 	Template      bool
 
 	RepoTemplate    int64
@@ -41,7 +41,7 @@ type CreateRepoForm struct {
 	Labels          bool
 	ProtectedBranch bool
 
-	ForkSingleBranch string
+	ForkSingleBranch string `binding:"MaxSize(255)"`
 	ObjectFormatName string
 }
 
@@ -143,6 +143,7 @@ type RepoSettingForm struct {
 	PullsAllowRebaseUpdate           bool
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
+	DefaultTargetBranch              string
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
@@ -205,6 +206,7 @@ type ProtectBranchPriorityForm struct {
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
+	Name                     string `binding:"MaxSize(255)"`
 	Events                   string
 	Create                   bool
 	Delete                   bool
@@ -405,13 +407,6 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// .___
-// |   | ______ ________ __   ____
-// |   |/  ___//  ___/  |  \_/ __ \
-// |   |\___ \ \___ \|  |  /\  ___/
-// |___/____  >____  >____/  \___  >
-//          \/     \/            \/
-
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
 	Title               string `binding:"Required;MaxSize(255)"`
@@ -527,7 +522,7 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
 	// required: true
-	// enum: merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged
+	// enum: ["merge","rebase","rebase-merge","squash","fast-forward-only","manually-merged"]
 	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
 	MergeTitleField        string
 	MergeMessageField      string
@@ -634,6 +629,19 @@ type NewReleaseForm struct {
 
 // Validate validates the fields
 func (f *NewReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// GenerateReleaseNotesForm retrieves release notes recommendations.
+type GenerateReleaseNotesForm struct {
+	TagName     string `form:"tag_name" binding:"Required;GitRefName;MaxSize(255)"`
+	TagTarget   string `form:"tag_target" binding:"MaxSize(255)"`
+	PreviousTag string `form:"previous_tag" binding:"MaxSize(255)"`
+}
+
+// Validate validates the fields
+func (f *GenerateReleaseNotesForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
